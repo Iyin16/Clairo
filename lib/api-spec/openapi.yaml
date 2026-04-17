@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: analyze
+    description: Message analysis operations
 paths:
   /healthz:
     get:
@@ -24,6 +26,31 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /analyze:
+    post:
+      operationId: analyzeMessage
+      tags: [analyze]
+      summary: Analyze a message
+      description: Analyzes a real-world message and returns structured clarity insights
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AnalyzeMessageBody"
+      responses:
+        "200":
+          description: Analysis result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalysisResult"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +60,46 @@ components:
           type: string
       required:
         - status
-
+    AnalyzeMessageBody:
+      type: object
+      properties:
+        input:
+          type: string
+          description: The message text to analyze
+      required:
+        - input
+    AnalysisResult:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [job offer, scam risk, informational, promotional, unknown]
+          description: The classified type of the message
+        riskLevel:
+          type: string
+          enum: [low, medium, high]
+          description: The assessed risk level
+        missingInfo:
+          type: array
+          items:
+            type: string
+          description: List of missing important details
+        summary:
+          type: string
+          description: Plain-language explanation of the message
+        recommendation:
+          type: string
+          description: Clear safe next step for the user
+      required:
+        - type
+        - riskLevel
+        - missingInfo
+        - summary
+        - recommendation
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error

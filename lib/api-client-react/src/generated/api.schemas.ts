@@ -8,3 +8,51 @@
 export interface HealthStatus {
   status: string;
 }
+
+export interface AnalyzeMessageBody {
+  /** The message text to analyze */
+  input: string;
+}
+
+/**
+ * The classified type of the message
+ */
+export type AnalysisResultType =
+  (typeof AnalysisResultType)[keyof typeof AnalysisResultType];
+
+export const AnalysisResultType = {
+  job_offer: "job offer",
+  scam_risk: "scam risk",
+  informational: "informational",
+  promotional: "promotional",
+  unknown: "unknown",
+} as const;
+
+/**
+ * The assessed risk level
+ */
+export type AnalysisResultRiskLevel =
+  (typeof AnalysisResultRiskLevel)[keyof typeof AnalysisResultRiskLevel];
+
+export const AnalysisResultRiskLevel = {
+  low: "low",
+  medium: "medium",
+  high: "high",
+} as const;
+
+export interface AnalysisResult {
+  /** The classified type of the message */
+  type: AnalysisResultType;
+  /** The assessed risk level */
+  riskLevel: AnalysisResultRiskLevel;
+  /** List of missing important details */
+  missingInfo: string[];
+  /** Plain-language explanation of the message */
+  summary: string;
+  /** Clear safe next step for the user */
+  recommendation: string;
+}
+
+export interface ErrorResponse {
+  error: string;
+}

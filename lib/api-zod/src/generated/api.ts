@@ -14,3 +14,25 @@ import * as zod from "zod";
 export const HealthCheckResponse = zod.object({
   status: zod.string(),
 });
+
+/**
+ * Analyzes a real-world message and returns structured clarity insights
+ * @summary Analyze a message
+ */
+export const AnalyzeMessageBody = zod.object({
+  input: zod.string().describe("The message text to analyze"),
+});
+
+export const AnalyzeMessageResponse = zod.object({
+  type: zod
+    .enum(["job offer", "scam risk", "informational", "promotional", "unknown"])
+    .describe("The classified type of the message"),
+  riskLevel: zod
+    .enum(["low", "medium", "high"])
+    .describe("The assessed risk level"),
+  missingInfo: zod
+    .array(zod.string())
+    .describe("List of missing important details"),
+  summary: zod.string().describe("Plain-language explanation of the message"),
+  recommendation: zod.string().describe("Clear safe next step for the user"),
+});
