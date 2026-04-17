@@ -6,6 +6,14 @@ const analyzeRouter = Router();
 const VALID_TYPES = ["job offer", "scam risk", "informational", "promotional", "unknown"] as const;
 const VALID_RISK_LEVELS = ["low", "medium", "high"] as const;
 
+const EMPTY_RESPONSE = {
+  type: "unknown",
+  riskLevel: "low",
+  observations: [],
+  summary: "No message was provided to analyze.",
+  action: "Please paste a message and try again.",
+};
+
 const FALLBACK = {
   type: "unknown",
   riskLevel: "medium",
@@ -23,7 +31,7 @@ Analyze any message (job offers, scams, announcements, promotions) and return a 
   "riskLevel": one of exactly ["low", "medium", "high"],
   "observations": an array of 2–5 concise strings highlighting key details or red flags,
   "summary": 2–3 plain sentences explaining what the message is about,
-  "action": a single short actionable recommendation for the user (e.g. "Verify the sender's identity before responding.", "Do not click any links — this appears to be a phishing attempt.")
+  "action": a single short actionable recommendation for the user
 }
 
 RULES:
@@ -35,67 +43,79 @@ RULES:
 - observations must be an array of strings (empty array is acceptable)
 - action must be a single complete sentence or two`;
 
-analyzeRouter.post("/analyze", async (req, res) => {
-  let input: string;
+function sanitize(text: string): string {
+  return text.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
 
+function normalizeResponse(parsed: Record<string, unknown>) {
+  const type = VALID_TYPES.includes(parsed.type as (typeof VALID_TYPES)[number])
+    ? (parsed.type as string)
+    : "unknown";
+
+  const riskLevel = VALID_RISK_LEVELS.includes(parsed.riskLevel as (typeof VALID_RISK_LEVELS)[number])
+    ? (parsed.riskLevel as string)
+    : "medium";
+
+  const observations = Array.isArray(parsed.observations)
+    ? parsed.observations.map((o) => String(o)).filter(Boolean)
+    : [];
+
+  const summary =
+    typeof parsed.summary === "string" && parsed.summary.trim().length > 0
+      ? parsed.summary.trim()
+      : FALLBACK.summary;
+
+  const action =
+    typeof parsed.action === "string" && parsed.action.trim().length > 0
+      ? parsed.action.trim()
+      : FALLBACK.action;
+
+  return { type, riskLevel, observations, summary, action };
+}
+
+analyzeRouter.post("/analyze", async (req, res) => {
   try {
     const raw = req.body?.input;
 
-    if (!raw || typeof raw !== "string" || raw.trim().length === 0) {
-      res.status(200).json(FALLBACK);
+    if (raw === undefined || raw === null || typeof raw !== "string") {
+      res.status(400).json({ error: "input is required and must be a string." });
       return;
     }
 
-    input = raw.trim().slice(0, 5000);
-  } catch {
-    res.status(200).json(FALLBACK);
-    return;
-  }
+    const trimmed = raw.trim();
 
-  try {
-    const completion = await openai.chat.completions.create({
-      model: "gpt-5.2",
-      max_completion_tokens: 1024,
-      messages: [
-        { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: `Analyze this message:\n\n${input}` },
-      ],
-      response_format: { type: "json_object" },
-    });
+    if (trimmed.length === 0) {
+      res.status(200).json(EMPTY_RESPONSE);
+      return;
+    }
 
-    let parsed: Record<string, unknown> = {};
+    const input = sanitize(trimmed.slice(0, 3000));
 
     try {
+      const completion = await openai.chat.completions.create({
+        model: "gpt-5.2",
+        max_completion_tokens: 1024,
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT },
+          { role: "user", content: `Analyze this message:\n\n${input}` },
+        ],
+        response_format: { type: "json_object" },
+      });
+
       const rawContent = completion.choices[0]?.message?.content ?? "{}";
-      parsed = JSON.parse(rawContent) as Record<string, unknown>;
+
+      let parsed: Record<string, unknown> = {};
+      try {
+        parsed = JSON.parse(rawContent) as Record<string, unknown>;
+      } catch {
+        res.status(200).json(FALLBACK);
+        return;
+      }
+
+      res.status(200).json(normalizeResponse(parsed));
     } catch {
       res.status(200).json(FALLBACK);
-      return;
     }
-
-    const type = VALID_TYPES.includes(parsed.type as (typeof VALID_TYPES)[number])
-      ? (parsed.type as string)
-      : "unknown";
-
-    const riskLevel = VALID_RISK_LEVELS.includes(parsed.riskLevel as (typeof VALID_RISK_LEVELS)[number])
-      ? (parsed.riskLevel as string)
-      : "medium";
-
-    const observations = Array.isArray(parsed.observations)
-      ? parsed.observations.map((o) => String(o)).filter(Boolean)
-      : [];
-
-    const summary =
-      typeof parsed.summary === "string" && parsed.summary.trim().length > 0
-        ? parsed.summary.trim()
-        : FALLBACK.summary;
-
-    const action =
-      typeof parsed.action === "string" && parsed.action.trim().length > 0
-        ? parsed.action.trim()
-        : FALLBACK.action;
-
-    res.status(200).json({ type, riskLevel, observations, summary, action });
   } catch {
     res.status(200).json(FALLBACK);
   }
