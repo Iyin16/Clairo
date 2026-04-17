@@ -47,16 +47,37 @@ Serves all API routes:
 
 ## API Contract
 
-The `/api/analyze` endpoint accepts `{ input: string }` and returns:
+`POST /api/analyze` — accepts `{ input: string }` (max 5000 chars), always returns HTTP 200 with:
 ```json
 {
   "type": "job offer | scam risk | informational | promotional | unknown",
   "riskLevel": "low | medium | high",
-  "missingInfo": ["string"],
+  "observations": ["string"],
   "summary": "string",
-  "recommendation": "string"
+  "action": "string"
 }
 ```
+
+**Edge case behaviour (all return HTTP 200 with the fallback shape):**
+- Missing, null, empty, or non-string `input` → safe fallback JSON (no crash)
+- Input trimmed and capped at 5000 characters
+- SQL injection / special characters treated as plain text
+- AI parse failure → safe fallback JSON
+
+**data-testid inventory:**
+| Element | `data-testid` |
+|---|---|
+| Page heading | `heading-title` |
+| Subtitle | `text-subtitle` |
+| Textarea | `input-message` |
+| Analyze button | `button-analyze` |
+| Error state | `status-error` |
+| Results wrapper | `section-results` |
+| Type card | `card-type` / `text-type` |
+| Risk card | `card-risk` / `text-risk-level` |
+| Observations | `card-observations` / `text-observation-{n}` |
+| Summary | `card-summary` / `text-summary` |
+| Action | `card-action` / `text-action` |
 
 ## Environment Variables
 

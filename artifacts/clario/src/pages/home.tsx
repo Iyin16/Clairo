@@ -1,17 +1,15 @@
 import { useState } from "react";
 import {
   AlertTriangle, CheckCircle2, Info, ShieldAlert, Briefcase,
-  HelpCircle, Loader2, Zap, Eye, ArrowRight
+  HelpCircle, Loader2, Zap, ArrowRight
 } from "lucide-react";
 
 interface AnalysisResult {
   type: "job offer" | "scam risk" | "informational" | "promotional" | "unknown";
   riskLevel: "low" | "medium" | "high";
-  riskReason: string;
   observations: string[];
   summary: string;
-  clarityAction: "verify source" | "proceed cautiously" | "safe to engage" | "ignore / avoid";
-  recommendation: string;
+  action: string;
 }
 
 const typeConfig: Record<string, { label: string; icon: React.ComponentType<{ className?: string }>; color: string }> = {
@@ -26,13 +24,6 @@ const riskConfig: Record<string, { label: string; color: string; dot: string; ba
   low:    { label: "Low",    color: "text-green-700 bg-green-50 border-green-200 dark:text-green-400 dark:bg-green-950 dark:border-green-800", dot: "bg-green-500", bar: "bg-green-500 w-1/3" },
   medium: { label: "Medium", color: "text-amber-700 bg-amber-50 border-amber-200 dark:text-amber-400 dark:bg-amber-950 dark:border-amber-800", dot: "bg-amber-500", bar: "bg-amber-500 w-2/3" },
   high:   { label: "High",   color: "text-red-700 bg-red-50 border-red-200 dark:text-red-400 dark:bg-red-950 dark:border-red-800",           dot: "bg-red-500",   bar: "bg-red-500 w-full" },
-};
-
-const actionConfig: Record<string, { label: string; color: string; icon: React.ComponentType<{ className?: string }> }> = {
-  "verify source":      { label: "Verify Source",      color: "text-blue-700 bg-blue-50 border-blue-300 dark:text-blue-300 dark:bg-blue-950 dark:border-blue-700",   icon: Eye },
-  "proceed cautiously": { label: "Proceed Cautiously", color: "text-amber-700 bg-amber-50 border-amber-300 dark:text-amber-300 dark:bg-amber-950 dark:border-amber-700", icon: AlertTriangle },
-  "safe to engage":     { label: "Safe to Engage",     color: "text-green-700 bg-green-50 border-green-300 dark:text-green-300 dark:bg-green-950 dark:border-green-700",  icon: CheckCircle2 },
-  "ignore / avoid":     { label: "Ignore / Avoid",     color: "text-red-700 bg-red-50 border-red-300 dark:text-red-300 dark:bg-red-950 dark:border-red-700",         icon: ShieldAlert },
 };
 
 export default function Home() {
@@ -69,9 +60,8 @@ export default function Home() {
     }
   };
 
-  const typeInfo   = result ? (typeConfig[result.type] ?? typeConfig.unknown) : null;
-  const riskInfo   = result ? (riskConfig[result.riskLevel] ?? riskConfig.medium) : null;
-  const actionInfo = result ? (actionConfig[result.clarityAction] ?? actionConfig["proceed cautiously"]) : null;
+  const typeInfo = result ? (typeConfig[result.type] ?? typeConfig.unknown) : null;
+  const riskInfo = result ? (riskConfig[result.riskLevel] ?? riskConfig.medium) : null;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -131,7 +121,7 @@ export default function Home() {
           </div>
         )}
 
-        {result && typeInfo && riskInfo && actionInfo && (
+        {result && typeInfo && riskInfo && (
           <div data-testid="section-results" className="space-y-3 animate-in fade-in slide-in-from-bottom-4 duration-300">
 
             {/* Row 1: Message Type + Risk Signal */}
@@ -145,7 +135,7 @@ export default function Home() {
               </div>
 
               <div data-testid="card-risk" className={`p-4 rounded-xl border ${riskInfo.color}`}>
-                <p className="text-xs font-semibold uppercase tracking-wider opacity-60 mb-2">2. Risk Signal</p>
+                <p className="text-xs font-semibold uppercase tracking-wider opacity-60 mb-2">2. Risk Level</p>
                 <div className="flex items-center gap-2 mb-2">
                   <div className={`w-2 h-2 rounded-full shrink-0 ${riskInfo.dot}`} />
                   <p data-testid="text-risk-level" className="font-bold text-sm">{riskInfo.label}</p>
@@ -153,9 +143,6 @@ export default function Home() {
                 <div className="h-1 rounded-full bg-black/10 dark:bg-white/10 overflow-hidden">
                   <div className={`h-full rounded-full transition-all ${riskInfo.bar}`} />
                 </div>
-                {result.riskReason && (
-                  <p data-testid="text-risk-reason" className="text-xs mt-2 opacity-80 leading-snug">{result.riskReason}</p>
-                )}
               </div>
             </div>
 
@@ -180,15 +167,13 @@ export default function Home() {
               <p data-testid="text-summary" className="text-sm text-foreground leading-relaxed">{result.summary}</p>
             </div>
 
-            {/* Row 4: Clarity Action */}
-            <div data-testid="card-clarity-action" className={`p-5 rounded-xl border ${actionInfo.color} space-y-2`}>
-              <p className="text-xs font-semibold uppercase tracking-wider opacity-60">5. Clarity Action</p>
-              <div className="flex items-center gap-2">
-                <actionInfo.icon className="w-4 h-4 shrink-0" />
-                <p data-testid="text-clarity-action" className="font-bold text-sm">{actionInfo.label}</p>
-                <ArrowRight className="w-3.5 h-3.5 ml-auto opacity-50" />
+            {/* Row 4: Action */}
+            <div data-testid="card-action" className="p-5 rounded-xl border border-primary/20 bg-primary/5 space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wider text-primary/60">5. Recommended Action</p>
+              <div className="flex items-start gap-2">
+                <ArrowRight className="w-4 h-4 shrink-0 text-primary mt-0.5" />
+                <p data-testid="text-action" className="text-sm text-foreground leading-relaxed">{result.action}</p>
               </div>
-              <p data-testid="text-recommendation" className="text-sm leading-relaxed opacity-90">{result.recommendation}</p>
             </div>
 
           </div>
