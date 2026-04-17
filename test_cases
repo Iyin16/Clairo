@@ -1,0 +1,9 @@
+README.md# 
+Test Cases for Clario
+
+This folder contains sample test cases used to validate Clario’s message analysis system.
+
+It includes:
+- scam detection examples
+- job message examples
+- edge case inputs
